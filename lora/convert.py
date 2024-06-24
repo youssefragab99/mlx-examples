@@ -3,10 +3,11 @@
 import argparse
 import copy
 
+import utils
+
 import mlx.core as mx
 import mlx.nn as nn
 import models
-import utils
 from mlx.utils import tree_flatten
 
 
@@ -56,6 +57,11 @@ if __name__ == "__main__":
         action="store_true",
     )
     parser.add_argument(
+        "--local",
+        help="Load from local model.",
+        action="store_true",
+    )
+    parser.add_argument(
         "--q-group-size",
         help="Group size for quantization.",
         type=int,
@@ -84,7 +90,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print("[INFO] Loading")
-    weights, config, tokenizer = utils.fetch_from_hub(args.hf_path)
+    if args.local:
+        try:
+            weights, config, tokenizer = utils.fetch_from_local(args.mlx_path)
+        except Exception as e:
+            print(e)
+    else:
+        weights, config, tokenizer = utils.fetch_from_hub(args.hf_path)
 
     dtype = mx.float16 if args.quantize else getattr(mx, args.dtype)
     weights = {k: v.astype(dtype) for k, v in weights.items()}

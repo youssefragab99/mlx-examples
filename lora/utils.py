@@ -6,11 +6,12 @@ import logging
 from pathlib import Path
 from typing import Generator
 
+import transformers
+from huggingface_hub import snapshot_download
+
 import mlx.core as mx
 import mlx.nn as nn
 import models
-import transformers
-from huggingface_hub import snapshot_download
 
 
 def fetch_from_hub(hf_path: str):
@@ -31,6 +32,23 @@ def fetch_from_hub(hf_path: str):
         hf_path,
     )
     return weights, config.to_dict(), tokenizer
+
+
+def fetch_from_local(local_path: str):
+
+    weight_files = glob.glob(f"{local_path}/*.safetensors")
+    if len(weight_files) == 0:
+        raise FileNotFoundError("No safetensors found in {}".format(local_path))
+
+    weights = {}
+    for wf in weight_files:
+        weights.update(mx.load(wf).items())
+
+    config = json.load(open(f"{local_path}/config.json"))
+    tokenizer = transformers.AutoTokenizer.from_pretrained(
+        local_path,
+    )
+    return weights, config, tokenizer
 
 
 def upload_to_hub(path: str, name: str, hf_path: str):
